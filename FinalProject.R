@@ -1,11 +1,33 @@
-#library(billboard)
-#dirty <- spotify_track_data
-#tracks <- data.frame(year = dirty$year, explicit = dirty$explicit, danceability = dirty$danceability,
-#                     energy = dirty$energy, key = dirty$key, loudness = dirty$loudness,
-#                     mode = dirty$mode, speechiness = dirty$speechiness, acousticness = dirty$acousticness,
-#                     instrumentalness = dirty$instrumentalness, liveness = dirty$liveness,
-#                     valence = dirty$valence, tempo = dirty$tempo, duration_ms = dirty$duration_ms,
-#                     time_signature = dirty$time_signature)
-#write.csv(tracks, "TrackData.csv")
+#Kodi Obika
+#Eryk Pecyna
+#Additional Point 22 - Team consists of two members
 
+#This code is for getting Spotify's data Billboard Top 100s from 1960-2015 and writing the relevant
+#data to a csv, run it once then never again
+
+library(billboard)
+dirty <- spotify_track_data
+tracks <- data.frame(year = dirty$year, explicit = dirty$explicit, danceability = dirty$danceability,
+                     energy = dirty$energy, key = dirty$key, loudness = dirty$loudness,
+                     mode = dirty$mode, speechiness = dirty$speechiness, acousticness = dirty$acousticness,
+                     instrumentalness = dirty$instrumentalness, liveness = dirty$liveness,
+                     valence = dirty$valence, tempo = dirty$tempo, duration_ms = dirty$duration_ms,
+                     time_signature = dirty$time_signature)
+
+write.csv(tracks, "TrackData.csv")
+
+#Additional Point 1 - lots of columns baby
+#Additional Point 2 - The data set is large enough that we can use it as a population to
+#                     draw samples from
 data <- read.csv("TrackData.csv")
+
+par(mar=c(3,3,1,1))
+
+hist(data$danceability,
+     breaks="FD", 
+     freq=FALSE,
+     col="darkmagenta",
+     xlab = "Danceability",
+     main = "Danceability Probabilty Density")
+
+for(i in 1960:2015) print(sum(data$year== i))

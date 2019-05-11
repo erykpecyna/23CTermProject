@@ -5,16 +5,30 @@
 #This code is for getting Spotify's data Billboard Top 100s from 1960-2015 and writing the relevant
 #data to a csv, run it once then never again
 
-library(billboard)
-dirty <- spotify_track_data
-tracks <- data.frame(year = dirty$year, explicit = dirty$explicit, danceability = dirty$danceability,
-                     energy = dirty$energy, key = dirty$key, loudness = dirty$loudness,
-                     mode = dirty$mode, speechiness = dirty$speechiness, acousticness = dirty$acousticness,
-                     instrumentalness = dirty$instrumentalness, liveness = dirty$liveness,
-                     valence = dirty$valence, tempo = dirty$tempo, duration_ms = dirty$duration_ms,
-                     time_signature = dirty$time_signature)
+#library(billboard)
+#dirty <- spotify_track_data
+#tracks <- data.frame(year = dirty$year, explicit = dirty$explicit, danceability = dirty$danceability,
+#                     energy = dirty$energy, key = dirty$key, loudness = dirty$loudness,
+#                     mode = dirty$mode, speechiness = dirty$speechiness, acousticness = dirty$acousticness,
+#                     instrumentalness = dirty$instrumentalness, liveness = dirty$liveness,
+#                     valence = dirty$valence, tempo = dirty$tempo, duration_ms = dirty$duration_ms,
+#                     time_signature = dirty$time_signature)
+#
+#write.csv(tracks, "TrackData.csv")
+#
+#data <- read.csv("TrackData.csv")
+#
+#N <- length(data$danceability)
+#Position <- numeric(N)
+#for(i in 1:N) {
+#  diff <- which(data$year == data$year[i])[1] - 1
+#  Position[i] <- data$X[i]-diff
+#}
+#
+#tracks <- cbind(Position, tracks)
+#
+#write.csv(tracks, "TrackData.csv")
 
-write.csv(tracks, "TrackData.csv")
 
 #Additional Point 1 - lots of columns baby
 #Additional Point 2 - The data set is large enough that we can use it as a population to

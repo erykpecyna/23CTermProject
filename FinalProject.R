@@ -61,7 +61,12 @@ linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
   
   plot(xCol, yCol, pch = ".", cex = 2)
   points(xCol, Projection, col = "darkmagenta", pch =".", cex = 3)
+  return((BInv%*%t(A)%*%yCol)[2])
 }
 
-linreg(data$danceability, data$Position)
+linreg(data$danceability[data$year == 2014], data$Position[data$year == 2014])
+linreg(data$energy, data$Position)
+linreg(data$loudness, data$Position)
+linreg(data$speechiness, data$Position)
+linreg(data$energy, data$Position)
 

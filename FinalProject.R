@@ -44,4 +44,24 @@ hist(data$danceability,
      xlab = "Danceability",
      main = "Danceability Probabilty Density")
 
-for(i in 1960:2015) print(sum(data$year== i))
+plot(data$energy, data$Position)
+
+
+linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
+  #Basis Vectors for the vector space single degree polynomial functions
+  m1 <- rep(1, length(xCol))
+  m2 <- xCol
+  
+  #Projection Matrix approach
+  A <- cbind(m1, m2)
+  B <- t(A)%*%A
+  BInv <- solve(B)
+  P <- A%*%BInv%*%t(A)
+  Projection <- P%*%yCol
+  
+  plot(xCol, yCol, pch = ".", cex = 2)
+  points(xCol, Projection, col = "darkmagenta", pch =".", cex = 3)
+}
+
+linreg(data$danceability, data$Position)
+

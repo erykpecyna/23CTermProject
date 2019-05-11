@@ -35,6 +35,10 @@
 #                     draw samples from
 data <- read.csv("TrackData.csv")
 
+mode_lab <- c("Major", "Minor")
+mode_count <- c(sum(data$mode == 1), sum(data$mode == 0))
+barplot(mode_count, xlab = "Mode", ylab = "Counts", col = "darkmagenta", names.arg = mode_lab, main = "Mode Barplot")
+
 par(mar=c(3,3,1,1))
 
 hist(data$danceability,
@@ -44,8 +48,35 @@ hist(data$danceability,
      xlab = "Danceability",
      main = "Danceability Probabilty Density")
 
-plot(data$energy, data$Position)
+for(i in 1960:2015) print(sum(data$year== i))
 
+curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
+
+perm.test <- function(x, y, z, n) {
+  mean(x)
+  var(x)
+  mu.z = mean(x[y == z]); mu.z
+  var(x[y == z])
+  mu.nz = mean(x[y != z]); mu.nz
+  var(x[y != z])
+  permutations = numeric(n)
+  for (i in 1:n) {
+    resample = sample(x)
+    zs = resample[1:(length(x)/2)]
+    nzs = resample[(length(x)/2+1):length(x)]
+    permutations[i] = mean(zs) - mean(nzs)
+  }
+  hist(permutations, freq = FALSE)
+  test.statistic = mu.z - mu.nz
+  abline(v = test.statistic, lwd = 3)
+  2*mean(permutations < test.statistic)
+  sigma.2 = var(x)
+  var.p = sigma.2 * 2 / (length(x)/2)
+  curve(dnorm(x, mean = 0, sd = sqrt(var.p)), add = TRUE, lwd = 3)
+}
+perm.test(data$danceability, data$explicit, TRUE, 10000)
+
+plot(data$energy, data$Position)
 
 linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
   #Basis Vectors for the vector space single degree polynomial functions
@@ -64,9 +95,13 @@ linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
   return((BInv%*%t(A)%*%yCol)[2])
 }
 
+<<<<<<< HEAD
 linreg(data$danceability[data$year == 2014], data$Position[data$year == 2014])
 linreg(data$energy, data$Position)
 linreg(data$loudness, data$Position)
 linreg(data$speechiness, data$Position)
 linreg(data$energy, data$Position)
 
+=======
+linreg(data$danceability, data$Position)
+>>>>>>> 5b29ce8912dde6e55f128c354e8588ba4bbbd3bf

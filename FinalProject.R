@@ -12,22 +12,23 @@
 #                     mode = dirty$mode, speechiness = dirty$speechiness, acousticness = dirty$acousticness,
 #                     instrumentalness = dirty$instrumentalness, liveness = dirty$liveness,
 #                     valence = dirty$valence, tempo = dirty$tempo, duration_ms = dirty$duration_ms,
-#                     time_signature = dirty$time_signature)
-# 
-# write.csv(tracks, "TrackData.csv")
-# 
-# data <- read.csv("TrackData.csv")
-# 
-# N <- length(data$danceability)
-# Position <- numeric(N)
-# for(i in 1:N) {
+
+#                     time_signature = dirty$time_signature, artist_name = dirty$artist_name,
+#                     track_name = dirty$track_name)
+
+#write.csv(tracks, "TrackData.csv")
+
+#data <- read.csv("TrackData.csv")
+
+#N <- length(data$danceability)
+#Position <- numeric(N)
+#for(i in 1:N) {
 #  diff <- which(data$year == data$year[i])[1] - 1
 #  Position[i] <- data$X[i]-diff
-# }
-# 
-# tracks <- cbind(Position, tracks)
-# 
-# write.csv(tracks, "TrackData.csv")
+#}
+
+#tracks <- cbind(Position, tracks)
+#write.csv(tracks, "TrackData.csv")
 
 
 #Additional Point 1 - lots of columns baby
@@ -56,6 +57,7 @@ hist(data$danceability,
      xlab = "Danceability",
      main = "Danceability Probabilty Density")
 
+<<<<<<< HEAD
 # Additional point 11 - Graphics using ggplot
 ggplot(data, aes(x = factor(mode))) + 
   geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
@@ -74,6 +76,8 @@ ggplot(data, aes(x = danceability)) +
 
 for(i in 1960:2015) print(sum(data$year== i))
 
+=======
+>>>>>>> fad4e8eab54027f98c5cb97d721e4438f4698208
 curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
 
 perm.test <- function(x, y, z, n) {
@@ -133,6 +137,92 @@ linreg(data$energy, data$Position)
 linreg(data$loudness, data$Position)
 linreg(data$speechiness, data$Position)
 linreg(data$energy, data$Position)
+
+
+#Reconstruct data using only first nV eigenvectors with biggest eigenvalues
+PCA <- function(RawData, nV = 1) {
+  numRow <- nrow(RawData)
+  numCol <- length(RawData[1,])
+  
+  fillZeroes <- function(numCols) {
+    matrix(0, nrow = numRow, ncol = numCols)
+  }
+  
+  Adjusted <- scale(RawData, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
+  
+  #Additional point 16: Appropriate use of covariance matrix
+  S <- var(RawData)
+  Eig <- eigen(S)
+
+  P <- Eig$vectors
+  PInv <- solve(P)
+  
+  #This is the centered data represented in terms of basis of eigenvectors
+  Data.eig <- Adjusted%*%P
+  
+  A.reconstruct <- Data.eig%*%PInv
+  
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  
+  AStripped <- cbind(Data.eig[,1:nV], fillZeroes(numCol-nV))
+  A.reconstruct <- AStripped%*%PInv
+  
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  Reconstructed
+}
+
+
+Attributes <- cbind(data$danceability, data$energy, data$loudness,
+                    data$speechiness, data$acousticness, data$instrumentalness,
+                    data$liveness, data$valence, data$tempo)
+numRow <- nrow(data)
+numCol <- length(Attributes[1,])
+Adjusted <- scale(Attributes, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
+S <- t(Adjusted)%*%Adjusted
+
+Eig <- eigen(S)
+Eig$values #The first two values are much bigger than the others
+
+P <- Eig$vectors
+PInv <- solve(P)
+
+A.eig <- Adjusted%*%P
+
+eigOrder <- data.frame(data$artist_name, v1=A.eig[,1], v2=A.eig[,2])
+#This eigenvector seems to represent how fast a song is, as when we sort by
+#this first eigenvector, it is almost the same as sorting by tempo
+eigenOrderedv1 <- ((data[order(eigOrder$v1),]))
+head(eigenOrderedv1$track_name); head(((data[order(data$tempo),]$track_name)))
+#This eigenvector seems to represent how loud a song is, as loudness increases
+#steadily when going down the matrix sorted by this eigenvector
+eigenOrderedv2 <- ((data[order(eigOrder$v2),]))
+head(eigenOrderedv2$loudness); tail(eigenOrderedv2$loudness)
+
+A.reconstruct <- A.eig%*%PInv
+head(A.reconstruct); head(Adjusted)
+
+Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+Reconstructed <- scale(Reconstructed, center = -colMeans(Attributes), scale = FALSE)
+head(Reconstructed); head(Attributes)
+
+AStripped <- cbind(A.eig[,1], A.eig[,2], 0, 0, 0, 0, 0, 0, 0)
+A.reconstruct <- AStripped%*%PInv
+head(A.reconstruct); head(Adjusted)
+
+Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+Reconstructed <- scale(Reconstructed, center = -colMeans(Attributes), scale = FALSE)
+head(Reconstructed); head(Attributes)
+
+#This is the same reconstruction yielded by the PCA function
+head(PCA(Attributes, 2)); head(Reconstructed)
+
+#As we can see, reconstructing from only the first eigenvalue yields
+#a good reconstruction of tempo (column 9) but not much else
+head(PCA(Attributes)); head(Attributes)
+
+
 linreg(data$danceability, data$Position)
 
 tbl <- table(data$explicit, data$mode); tbl
@@ -140,9 +230,10 @@ expected <- outer(rowSums(tbl), colSums(tbl))/sum(tbl); expected
 chisq.test(data$explicit, data$mode)
 
 # Additional point 15 - calculation and display of logistic regression
+library(stats4)
 logreg <- function(x, y, z) {
   tf <- (as.numeric(y == z))
-  plot(x, wins)
+  plot(x, tf)
   MLL <- function(alpha, beta) {
     -sum(log(exp(alpha+beta*x)/(1+exp(alpha+beta*x)))*tf
           + log(1/(1+exp(alpha+beta*x)))*(1-tf))
@@ -152,8 +243,13 @@ logreg <- function(x, y, z) {
   curve(exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
 }
 
+<<<<<<< HEAD
 logreg(data$danceability, data$explicit, FALSE)
   
+=======
+logreg(data$danceability, data$explicit, TRUE)
+
+>>>>>>> fad4e8eab54027f98c5cb97d721e4438f4698208
 
 # Additional point 20 - Calculation of a confidence interval
 me <- qt(0.95, 9) * sd(data$danceability) / sqrt(10)

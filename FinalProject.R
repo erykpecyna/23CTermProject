@@ -12,22 +12,25 @@
 #                     mode = dirty$mode, speechiness = dirty$speechiness, acousticness = dirty$acousticness,
 #                     instrumentalness = dirty$instrumentalness, liveness = dirty$liveness,
 #                     valence = dirty$valence, tempo = dirty$tempo, duration_ms = dirty$duration_ms,
-#                     time_signature = dirty$time_signature)
-#
+#                     time_signature = dirty$time_signature, artist_name = dirty$artist_name,
+#                     track_name = dirty$track_name)
+
 #write.csv(tracks, "TrackData.csv")
-#
+
 #data <- read.csv("TrackData.csv")
-#
+
 #N <- length(data$danceability)
 #Position <- numeric(N)
 #for(i in 1:N) {
 #  diff <- which(data$year == data$year[i])[1] - 1
 #  Position[i] <- data$X[i]-diff
 #}
-#
+
 #tracks <- cbind(Position, tracks)
-#
+
 #write.csv(tracks, "TrackData.csv")
+
+
 
 
 #Additional Point 1 - lots of columns baby
@@ -47,8 +50,6 @@ hist(data$danceability,
      col="darkmagenta",
      xlab = "Danceability",
      main = "Danceability Probabilty Density")
-
-for(i in 1960:2015) print(sum(data$year== i))
 
 curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
 
@@ -95,13 +96,43 @@ linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
   return((BInv%*%t(A)%*%yCol)[2])
 }
 
-<<<<<<< HEAD
 linreg(data$danceability[data$year == 2014], data$Position[data$year == 2014])
 linreg(data$energy, data$Position)
 linreg(data$loudness, data$Position)
 linreg(data$speechiness, data$Position)
 linreg(data$energy, data$Position)
 
-=======
-linreg(data$danceability, data$Position)
->>>>>>> 5b29ce8912dde6e55f128c354e8588ba4bbbd3bf
+
+#Principal Components Analysis
+Attributes <- cbind(data$danceability, data$energy, data$loudness, data$speechiness,
+                    data$acousticness, data$instrumentalness, data$liveness, data$valence,
+                    data$tempo)
+m <- nrow(data)
+
+A.phi <- scale(Attributes, center=TRUE, scale = c(rep(sqrt(m-1), 9)))
+S <- t(A.phi)%*%A.phi
+
+Eig <- eigen(S)
+Eig$values #First two eigenvalues are by far the largest
+
+P <- Eig$vectors
+PInv <- solve(P)
+
+A.eig <- A.phi%*%P
+
+TRACK.eig <- data.frame(data$artist_name, v1=A.eig[,1])
+eigstuffs <- ((data[order(TRACK.eig$v1),]))
+eigs2015on <- eigstuffs[eigstuffs$year > 2014,]
+
+
+
+
+
+
+
+
+
+
+
+
+

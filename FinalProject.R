@@ -100,34 +100,88 @@ linreg(data$speechiness, data$Position)
 linreg(data$energy, data$Position)
 
 
-#Principal Components Analysis
-Attributes <- cbind(data$danceability, data$energy, data$loudness, data$speechiness,
-                    data$acousticness, data$instrumentalness, data$liveness, data$valence,
-                    data$tempo)
-m <- nrow(data)
+#Reconstruct data using only first nV eigenvectors with biggest eigenvalues
+PCA <- function(RawData, nV = 1) {
+  numRow <- nrow(RawData)
+  numCol <- length(RawData[1,])
+  
+  fillZeroes <- function(numCols) {
+    matrix(0, nrow = numRow, ncol = numCols)
+  }
+  
+  Adjusted <- scale(RawData, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
+  
+  #Additional point 16: Appropriate use of covariance matrix
+  S <- var(RawData)
+  Eig <- eigen(S)
 
-A.phi <- scale(Attributes, center=TRUE, scale = c(rep(sqrt(m-1), 9)))
-S <- t(A.phi)%*%A.phi
+  P <- Eig$vectors
+  PInv <- solve(P)
+  
+  #This is the centered data represented in terms of basis of eigenvectors
+  Data.eig <- Adjusted%*%P
+  
+  A.reconstruct <- Data.eig%*%PInv
+  
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  
+  AStripped <- cbind(Data.eig[,1:nV], fillZeroes(numCol-nV))
+  A.reconstruct <- AStripped%*%PInv
+  
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  Reconstructed
+}
+
+
+Attributes <- cbind(data$danceability, data$energy, data$loudness,
+                    data$speechiness, data$acousticness, data$instrumentalness,
+                    data$liveness, data$valence, data$tempo)
+numRow <- nrow(data)
+numCol <- length(Attributes[1,])
+Adjusted <- scale(Attributes, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
+S <- t(Adjusted)%*%Adjusted
 
 Eig <- eigen(S)
-Eig$values #First two eigenvalues are by far the largest
+Eig$values #The first two values are much bigger than the others
 
 P <- Eig$vectors
 PInv <- solve(P)
 
-A.eig <- A.phi%*%P
+A.eig <- Adjusted%*%P
 
-TRACK.eig <- data.frame(data$artist_name, v1=A.eig[,1])
-eigstuffs <- ((data[order(TRACK.eig$v1),]))
-eigs2015on <- eigstuffs[eigstuffs$year > 2014,]
+eigOrder <- data.frame(data$artist_name, v1=A.eig[,1], v2=A.eig[,2])
+#This eigenvector seems to represent how fast a song is, as when we sort by
+#this first eigenvector, it is almost the same as sorting by tempo
+eigenOrderedv1 <- ((data[order(eigOrder$v1),]))
+head(eigenOrderedv1$track_name); head(((data[order(data$tempo),]$track_name)))
+#This eigenvector seems to represent how loud a song is, as loudness increases
+#steadily when going down the matrix sorted by this eigenvector
+eigenOrderedv2 <- ((data[order(eigOrder$v2),]))
+head(eigenOrderedv2$loudness); tail(eigenOrderedv2$loudness)
 
+A.reconstruct <- A.eig%*%PInv
+head(A.reconstruct); head(Adjusted)
 
+Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+Reconstructed <- scale(Reconstructed, center = -colMeans(Attributes), scale = FALSE)
+head(Reconstructed); head(Attributes)
 
+AStripped <- cbind(A.eig[,1], A.eig[,2], 0, 0, 0, 0, 0, 0, 0)
+A.reconstruct <- AStripped%*%PInv
+head(A.reconstruct); head(Adjusted)
 
+Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+Reconstructed <- scale(Reconstructed, center = -colMeans(Attributes), scale = FALSE)
+head(Reconstructed); head(Attributes)
 
+#This is the same reconstruction yielded by the PCA function
+head(PCA(Attributes, 2)); head(Reconstructed)
 
-
-
+#As we can see, reconstructing from only the first eigenvalue yields
+#a good reconstruction of tempo (column 9) but not much else
+head(PCA(Attributes)); head(Attributes)
 
 
 linreg(data$danceability, data$Position)
@@ -137,9 +191,10 @@ expected <- outer(rowSums(tbl), colSums(tbl))/sum(tbl); expected
 chisq.test(data$explicit, data$mode)
 
 # Additional point 15 - calculation and display of logistic regression
+library(stats4)
 logreg <- function(x, y, z) {
   tf <- (as.numeric(y == z))
-  plot(x, wins)
+  plot(x, tf)
   MLL <- function(alpha, beta) {
     -sum(log(exp(alpha+beta*x)/(1+exp(alpha+beta*x)))*tf
           + log(1/(1+exp(alpha+beta*x)))*(1-tf))
@@ -149,7 +204,7 @@ logreg <- function(x, y, z) {
   curve(exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
 }
 
-logreg(data$danceability, data$explicit, FALSE)
+logreg(data$danceability, data$explicit, TRUE)
 
 
 

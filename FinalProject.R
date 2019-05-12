@@ -38,9 +38,14 @@ library(tidyverse)
 
 data <- read.csv("TrackData.csv")
 
-mode_lab <- c("Major", "Minor")
 mode_count <- c(sum(data$mode == 1), sum(data$mode == 0))
-barplot(mode_count, xlab = "Mode", ylab = "Counts", col = "darkmagenta", names.arg = mode_lab, main = "Mode Barplot")
+barplot(mode_count, 
+        xlab = "Mode", 
+        ylab = "Song Counts", 
+        col = "darkmagenta", 
+        names.arg = c("Major", "Minor"), 
+        main = "Representation of Each Mode in Billboard Hot 100",
+        horiz = T)
 
 par(mar=c(3,3,1,1))
 
@@ -50,6 +55,22 @@ hist(data$danceability,
      col="darkmagenta",
      xlab = "Danceability",
      main = "Danceability Probabilty Density")
+
+# Additional point 11 - Graphics using ggplot
+ggplot(data, aes(x = factor(mode))) + 
+  geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
+  theme_minimal() +
+  xlab("Mode") +
+  ylab("Song Count") +
+  ggtitle("Representation of Each Mode in Billboard Hot 100") +
+  scale_x_discrete(labels = c("Minor", "Major")) +
+  coord_flip()
+
+ggplot(data, aes(x = danceability)) + 
+  geom_histogram(binwidth = 0.025, fill = "darkmagenta") +
+  theme_minimal() +
+  xlab("Danceability") +
+  ggtitle("Danceability Probabilty Density")
 
 for(i in 1960:2015) print(sum(data$year== i))
 
@@ -73,7 +94,20 @@ perm.test <- function(x, y, z, n) {
   var.p = var(x) * 2 / (length(x)/2)
   curve(dnorm(x, mean = 0, sd = sqrt(var.p)), add = TRUE, lwd = 3)
 }
+# Additional point 8 - Wouldn't necessarily expect danceabilty to
+# have a statistically significant relationship with songs being
+# explicit, but it turns out it does
 perm.test(data$danceability, data$explicit, FALSE, 10000)
+
+clt <- function(y, n = 10000) {
+  avg <- numeric(n)
+  for (i in 1:n) {
+    avg[i] <- mean(sample(y, 10))
+  }
+  hist(avg, probability = TRUE)
+  curve(dnorm(x, mean(y), sd(y)/sqrt(10)), add = TRUE, col = "darkmagenta")
+}
+clt(data$danceability)
 
 plot(data$energy, data$Position)
 
@@ -119,5 +153,9 @@ logreg <- function(x, y, z) {
 }
 
 logreg(data$danceability, data$explicit, FALSE)
+  
 
-
+# Additional point 20 - Calculation of a confidence interval
+me <- qt(0.95, 9) * sd(data$danceability) / sqrt(10)
+mean(data$danceability) - me
+mean(data$danceability) + me

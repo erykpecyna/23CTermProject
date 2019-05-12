@@ -53,13 +53,9 @@ for(i in 1960:2015) print(sum(data$year== i))
 curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
 
 perm.test <- function(x, y, z, n) {
-  mean(x)
-  var(x)
-  mu.z = mean(x[y == z]); mu.z
-  var(x[y == z])
-  mu.nz = mean(x[y != z]); mu.nz
-  var(x[y != z])
-  permutations = numeric(n)
+  mu.z <- mean(x[y == z])
+  mu.nz <- mean(x[y != z])
+  permutations <- numeric(n)
   for (i in 1:n) {
     resample = sample(x)
     zs = resample[1:(length(x)/2)]
@@ -68,13 +64,32 @@ perm.test <- function(x, y, z, n) {
   }
   hist(permutations, freq = FALSE)
   test.statistic = mu.z - mu.nz
-  abline(v = test.statistic, lwd = 3)
-  2*mean(permutations < test.statistic)
+  print(2*mean(permutations < test.statistic))
   sigma.2 = var(x)
   var.p = sigma.2 * 2 / (length(x)/2)
   curve(dnorm(x, mean = 0, sd = sqrt(var.p)), add = TRUE, lwd = 3)
 }
-perm.test(data$danceability, data$explicit, TRUE, 10000)
+perm.test(data$danceability, data$mode, 1, 10000)
+
+perm.test <- function(x, y, z, n) {
+  actualdiff <- mean(x[y == z]) - mean(x[y != z])
+  diffs <- numeric(n)
+  for (i in 1:n) {
+    hi <- sample(x)
+    hey <- mean(x[y == z])
+    hello <- mean(x[y != z])
+    diffs[i] <- hey - hello
+  }
+  diffs
+  hist(diffs, freq = F)
+  abline(v = actualdiff, col = "Blue")
+  print(mean(diffs < actualdiff) * 2)
+  dated <- sd(diffs)
+  curve(dnorm(x, mean = 0, sd = dated), add = TRUE, lwd = 3, col = "blue")
+}
+
+perm.test(data$danceability, data$mode, 1, 10000)
+
 
 plot(data$energy, data$Position)
 
@@ -92,6 +107,44 @@ linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
   
   plot(xCol, yCol, pch = ".", cex = 2)
   points(xCol, Projection, col = "darkmagenta", pch =".", cex = 3)
+  
 }
 
 linreg(data$danceability, data$Position)
+
+
+
+mean(data$danceability)
+var(data$danceability)
+# Find mean and variance for men alone
+mu.m = mean(data$danceability[data$explicit == T]); mu.m
+var(data$danceability[data$explicit == T])
+# Find mean and variance for women alone
+mu.w = mean(data$danceability[data$explicit != T]); mu.w
+var(data$danceability[data$explicit != T])
+
+# B
+# Find body temperatures
+temps = data$danceability
+# Conduct permutation test
+n = 10000
+permutations = numeric(n)
+for (i in 1:n) {
+  resample = sample(temps)
+  men = resample[1:65]
+  women = resample[66:130]
+  permutations[i] = mean(men) - mean(women)
+}
+# Generate histogram
+hist(permutations, freq = FALSE)
+
+# C
+# Overlay normal density function plot on histgram
+test.statistic = mu.m - mu.w
+abline(v = test.statistic, lwd = 3)
+2 * mean(permutations < test.statistic)
+sigma.2 = var(data$BodyTemp)
+var.p = sigma.2 * 2 / 65
+curve(dnorm(x, mean = 0, sd = sqrt(var.p)), add = TRUE, lwd = 3)
+
+

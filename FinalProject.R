@@ -74,10 +74,7 @@ ggplot(data, aes(x = danceability)) +
   xlab("Danceability") +
   ggtitle("Danceability Probabilty Density")
 
-for(i in 1960:2015) print(sum(data$year== i))
 
-=======
->>>>>>> fad4e8eab54027f98c5cb97d721e4438f4698208
 curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
 
 perm.test <- function(x, y, z, n) {
@@ -243,13 +240,11 @@ logreg <- function(x, y, z) {
   curve(exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
 }
 
-<<<<<<< HEAD
 logreg(data$danceability, data$explicit, FALSE)
   
-=======
+
 logreg(data$danceability, data$explicit, TRUE)
 
->>>>>>> fad4e8eab54027f98c5cb97d721e4438f4698208
 
 # Additional point 20 - Calculation of a confidence interval
 me <- qt(0.95, 9) * sd(data$danceability) / sqrt(10)

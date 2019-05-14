@@ -9,6 +9,88 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 data <- read.csv("TrackData.csv")
+perm.test <- function(x, y, z, n) {
+  mu.z = mean(x[y == z])
+  mu.nz = mean(x[y != z])
+  permutations = numeric(n)
+  for (i in 1:n) {
+    resample = sample(x)
+    zs = resample[1:(length(x)/2)]
+    nzs = resample[(length(x)/2+1):length(x)]
+    permutations[i] = mean(zs) - mean(nzs)
+  }
+  hist(permutations, freq = FALSE)
+  test.statistic = mu.z - mu.nz
+  abline(v = test.statistic, lwd = 3)
+  print("p-value:")
+  print(2*mean(permutations < test.statistic))
+  var.p = var(x) * 2 / (length(x)/2)
+  curve(dnorm(x, mean = 0, sd = sqrt(var.p)), add = TRUE, lwd = 3)
+}
+
+clt <- function(y, n = 10000) {
+  avg <- numeric(n)
+  for (i in 1:n) {
+    avg[i] <- mean(sample(y, 10))
+  }
+  hist(avg, probability = TRUE)
+  curve(dnorm(x, mean(y), sd(y)/sqrt(10)), add = TRUE, col = "darkmagenta")
+}
+
+
+linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
+  m1 <- rep(1, length(xCol))
+  m2 <- xCol
+  A <- cbind(m1, m2)
+  B <- t(A)%*%A
+  BInv <- solve(B)
+  P <- A%*%BInv%*%t(A)
+  Projection <- P%*%yCol
+  plot(xCol, yCol, pch = ".", cex = 2)
+  points(xCol, Projection, col = "darkmagenta", pch =".", cex = 3)
+  R2 <- var(Projection)/var(yCol)
+  print("Correlation:")
+  print(R2[1])
+  R2[1]
+}
+
+meancorrelation <- function(dt, testcol) {
+  total <- 0
+  for(i in 1:ncol(dt)) {
+    if(i != testcol) {
+      total <- total + linreg(dt[,testcol], dt[,i])
+    }
+  }
+  print("Mean Correlation:")
+  print(total / (ncol(dt) - 1))
+  total / (ncol(dt) - 1)
+}
+
+PCA <- function(RawData, nV = 1) {
+  numRow <- nrow(RawData)
+  numCol <- length(RawData[1,])
+  fillZeroes <- function(numCols) {
+    matrix(0, nrow = numRow, ncol = numCols)
+  }
+  Adjusted <- scale(RawData, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
+  S <- var(RawData)
+  Eig <- eigen(S)
+  P <- Eig$vectors
+  PInv <- solve(P)
+  Data.eig <- Adjusted%*%P
+  A.reconstruct <- Data.eig%*%PInv
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  AStripped <- cbind(Data.eig[,1:nV], fillZeroes(numCol-nV))
+  A.reconstruct <- AStripped%*%PInv
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  Reconstructed
+}
+
+
+
+
 ```
 
 ## Introduction
@@ -19,7 +101,7 @@ This is an analysis of the data collected and calculated by Spotify regarding th
 
 ## Plots of Spotify Data
 
-```{r RawData, echo = FALSE}
+```{r RawData}
 
 ggplot(data, aes(x = danceability)) + 
   geom_histogram(binwidth = 0.025, fill = "darkmagenta") +
@@ -81,13 +163,87 @@ ggplot(data, aes(x = duration_ms)) +
   xlab("Duration") +
   ggtitle("Duration Frequency")
 
+```
+
+##Representation of each key
+This displays the counts of songs that were written in each key.
+```{r Chords}
+keymode_lab <- c("C", "Cm", "C#/Db", "C#m/Dbm", "D", "Dm", "D#/Eb", 
+                 "D#m/Ebm", "E", "Em", "F", "Fm", "F#/Gb", "F#m/Gbm", 
+                 "G", "Gm", "G#/Ab", "G#m/Abm", "A", "Am", "A#/Bb", 
+                 "A#m/Bbm", "B", "Bm")
+
+data %>% 
+  select(key, mode) %>% 
+  group_by(key, mode) %>% 
+  mutate(n = n()) %>% 
+  unique() %>% 
+  arrange(key) %>%
+  ungroup() %>% 
+  mutate(keymode = keymode_lab) %>% 
+  select(keymode, n) %>% 
+  ggplot(aes(x = keymode, y = n)) + 
+  geom_bar(stat = "identity", fill = "darkmagenta") +
+  coord_flip()
+```
+
+
+##Are danceable songs more explicit?
+
+The P-value is tiny because it is extremely unlikely to observe such a difference by random chance. This means that explicit songs are much more likely to be danceable than non-explicit songs.  
+
+```{r perms}
+perm.test(data$danceability, data$explicit, FALSE, 10000)
+```
 
 
 
+##KODI RENAME THIS
 
+```{r clt}
+clt(data$danceability)
+```
+
+
+##Linear Regression 
+Here we use a Projection Matrix approach to calculate linear regression
+```{r linreg, fig.show="hide", results="hide"}
+Attributes <- cbind(data$danceability, data$energy, data$loudness,
+                    data$speechiness, data$acousticness, data$instrumentalness,
+                    data$liveness, data$valence, data$tempo)
+
+numericalData <- (cbind(data$Position, Attributes))  
+
+N <- ncol(numericalData)
+means <- numeric(N)
+for(i in 1:N) {
+  means[i] <- meancorrelation(numericalData, i)
+}
+```
+
+The third column, which happens to be energy in our definition of numericalData, has the highest average correlation with the other columns. The following linear regressions are the highest correlations energy has with any other columns.
+```{r means} 
+means
+
+linreg(data$energy, data$loudness)
+linreg(data$energy, data$acousticness)
+linreg(data$energy, data$valence)
+```
+
+##Principal Components Analysis
+Here we will use Principal Componenets Analysis to see if we can reconstruct any of the columns after stripping some of the eigenvectors of the basis of eigenvectors formed from the covariance matrix.
+
+Using one eigenvector gives us a good reconstruction of tempo (column 9)
+Using two also gives a good reconstruction of loudness (column 2) but not much else
+Using eight gives a decent reconstruction of all columns except speechiness (column 4)
+Using nine yields a perfect reconstruction of all the data
+```{r PCA}
+head(PCA(Attributes)); head(Attributes)
+head(PCA(Attributes, 2)); head(Attributes)
+head(PCA(Attributes, 8)); head(Attributes)
+head(PCA(Attributes, 9)); head(Attributes)
 ```
 
 
 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

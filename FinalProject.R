@@ -57,7 +57,6 @@ hist(data$danceability,
      xlab = "Danceability",
      main = "Danceability Probabilty Density")
 
-<<<<<<< HEAD
 # Additional point 11 - Graphics using ggplot
 ggplot(data, aes(x = factor(mode))) + 
   geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
@@ -74,8 +73,7 @@ ggplot(data, aes(x = danceability)) +
   xlab("Danceability") +
   ggtitle("Danceability Probabilty Density")
 
-
-curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
+curve(dnorm(x, mean = mean(data$danceability), sd = sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
 
 perm.test <- function(x, y, z, n) {
   mu.z = mean(x[y == z])

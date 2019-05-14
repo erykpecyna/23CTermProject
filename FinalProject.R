@@ -36,32 +36,41 @@
 #                     draw samples from
 library(tidyverse)
 
+data
+
 
 data <- read.csv("TrackData.csv")
 
 mode_count <- c(sum(data$mode == 1), sum(data$mode == 0))
+mode_lab <- c("Major", "Minor")
 barplot(mode_count, 
         xlab = "Mode", 
         ylab = "Song Counts", 
         col = "darkmagenta", 
-        names.arg = c("Major", "Minor"), 
+        names.arg = mode_lab, 
         main = "Representation of Each Mode in Billboard Hot 100",
         horiz = T)
 
-par(mar=c(3,3,1,1))
+key_count <- c(sum(data$key == 0),
+               sum(data$key == 1),
+               sum(data$key == 2),
+               sum(data$key == 3),
+               sum(data$key == 4),
+               sum(data$key == 5), 
+               sum(data$key == 6), 
+               sum(data$key == 7),
+               sum(data$key == 8), 
+               sum(data$key == 9), 
+               sum(data$key == 10),
+               sum(data$key == 11))
+key_lab <- c("C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B")
+barplot(key_count,
+        xlab = "Key", 
+        ylab = "Song counts", 
+        col = "darkmagenta", 
+        names.arg = key_lab,
+        main = "Representation of Each Key in Billboard Hot 100")
 
-hist(data$danceability,
-     breaks="FD", 
-     freq=FALSE,
-     col="darkmagenta",
-     xlab = "Danceability",
-     main = "Danceability Probabilty Density")
-
-<<<<<<< HEAD
-=======
-curve(dnorm(x, mean(data$danceability), sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
-
->>>>>>> b48eab012a67f1ddffde33288f1385cc04095a4a
 # Additional point 11 - Graphics using ggplot
 ggplot(data, aes(x = factor(mode))) + 
   geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
@@ -78,12 +87,36 @@ ggplot(data, aes(x = danceability)) +
   xlab("Danceability") +
   ggtitle("Danceability Probabilty Density")
 
-<<<<<<< HEAD
+keymode_lab <- c("C", "Cm", "C#/Db", "C#m/Dbm", "D", "Dm", "D#/Eb", 
+                 "D#m/Ebm", "E", "Em", "F", "Fm", "F#/Gb", "F#m/Gbm", 
+                 "G", "Gm", "G#/Ab", "G#m/Abm", "A", "Am", "A#/Bb", 
+                 "A#m/Bbm", "B", "Bm")
+
+data %>% 
+  select(key, mode) %>% 
+  group_by(key, mode) %>% 
+  mutate(yo = n()) %>% 
+  unique() %>% 
+  arrange(key) %>%
+  ungroup() %>% 
+  mutate(keymode = keymode_lab) %>% 
+  select(keymode, yo) %>% 
+  ggplot(aes(x = keymode, y = yo)) + 
+  geom_bar(stat = "identity", fill = "darkmagenta") +
+  coord_flip()
+  
+library(tidyverse)
+
+par(mar=c(3,3,1,1))
+
+hist(data$danceability,
+     breaks="FD", 
+     freq=FALSE,
+     col="darkmagenta",
+     xlab = "Danceability",
+     main = "Danceability Probabilty Density")
+
 curve(dnorm(x, mean = mean(data$danceability), sd = sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
-=======
-
-
->>>>>>> b48eab012a67f1ddffde33288f1385cc04095a4a
 
 perm.test <- function(x, y, z, n) {
   mu.z = mean(x[y == z])
@@ -120,8 +153,7 @@ clt(data$danceability)
 
 plot(data$energy, data$Position)
 
-#Uses a projection matrix to do linear regression, plots the results, and returns the corellation
-linreg <- function(xCol, yCol) {
+linreg <- function(xCol, yCol, xLabel = "X", yLable = "Y") {
   #Basis Vectors for the vector space single degree polynomial functions
   m1 <- rep(1, length(xCol))
   m2 <- xCol
@@ -135,52 +167,47 @@ linreg <- function(xCol, yCol) {
   
   plot(xCol, yCol, pch = ".", cex = 2)
   points(xCol, Projection, col = "darkmagenta", pch =".", cex = 3)
-  
-  R2 <- var(Projection)/var(yCol)
-  print("Correlation:")
-  print(R2[1])
-  R2[1]
+  return((BInv%*%t(A)%*%yCol)[2])
 }
+
+linreg(data$danceability[data$year == 2014], data$Position[data$year == 2014])
+linreg(data$energy, data$Position)
+linreg(data$loudness, data$Position)
+linreg(data$speechiness, data$Position)
+linreg(data$energy, data$Position)
+
 
 #Reconstruct data using only first nV eigenvectors with biggest eigenvalues
 PCA <- function(RawData, nV = 1) {
-  #Numrow and numCol are required for later calcultaions
   numRow <- nrow(RawData)
   numCol <- length(RawData[1,])
   
-  #This function returns a matric of numCols zero columns
-  #It will be useful when reconstructing the data using 
-  #less than all of the eigenvectors
   fillZeroes <- function(numCols) {
     matrix(0, nrow = numRow, ncol = numCols)
   }
   
-  #Principal Components Analysis requires normalized data 
   Adjusted <- scale(RawData, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
   
   #Additional point 16: Appropriate use of covariance matrix
   S <- var(RawData)
   Eig <- eigen(S)
-  
-  #The eigenvectors of S provide a new basis of independent random variables
-  #We can then use the most significant eigenvectors (largest eigenvalues)
-  #to try and reconstruct the data with less information
+
   P <- Eig$vectors
   PInv <- solve(P)
   
-  #This is the centered data represented in terms of the new basis of eigenvectors
+  #This is the centered data represented in terms of basis of eigenvectors
   Data.eig <- Adjusted%*%P
   
-  #Stripping out some of the data along some of the eigenvectors
-  AStripped <- cbind(Data.eig[,1:nV], fillZeroes(numCol-nV))
-  #Convert back to the old basis
-  A.reconstruct <- AStripped%*%PInv
+  A.reconstruct <- Data.eig%*%PInv
   
-  #Undoing the scaling from before
   Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
   Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
   
-  #The data reconstructed without all of its eigenvectors
+  AStripped <- cbind(Data.eig[,1:nV], fillZeroes(numCol-nV))
+  A.reconstruct <- AStripped%*%PInv
+  
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
   Reconstructed
 }
 
@@ -211,18 +238,17 @@ head(eigenOrderedv1$track_name); head(((data[order(data$tempo),]$track_name)))
 eigenOrderedv2 <- ((data[order(eigOrder$v2),]))
 head(eigenOrderedv2$loudness); tail(eigenOrderedv2$loudness)
 
-#Converting back to the old basis yields the original adjusted data
 A.reconstruct <- A.eig%*%PInv
 head(A.reconstruct); head(Adjusted)
 
-#undoing scaling
 Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
 Reconstructed <- scale(Reconstructed, center = -colMeans(Attributes), scale = FALSE)
 head(Reconstructed); head(Attributes)
 
-#Reconstructing without using all of the eigenvectors
 AStripped <- cbind(A.eig[,1], A.eig[,2], 0, 0, 0, 0, 0, 0, 0)
 A.reconstruct <- AStripped%*%PInv
+head(A.reconstruct); head(Adjusted)
+
 Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
 Reconstructed <- scale(Reconstructed, center = -colMeans(Attributes), scale = FALSE)
 head(Reconstructed); head(Attributes)
@@ -234,45 +260,12 @@ head(PCA(Attributes, 2)); head(Reconstructed)
 #a good reconstruction of tempo (column 9) but not much else
 head(PCA(Attributes)); head(Attributes)
 
-#Lets see which columns are most corellated with the others
-meancorrelation <- function(dt, testcol) {
-  total <- 0
-  for(i in 1:ncol(dt)) {
-    if(i != testcol) {
-      total <- total + linreg(dt[,testcol], dt[,i])
-    }
-  }
-  print("Mean Correlation:")
-  print(total / (ncol(dt) - 1))
-  total / (ncol(dt) - 1)
-}
 
-numericalData <- (cbind(data$Position, Attributes))  
-
-N <- ncol(numericalData)
-means <- numeric(N)
-for(i in 1:N) {
-  means[i] <- meancorrelation(numericalData, i)
-}
-
-#It looks like the third column (energy in this case) has the highest average correlation with the
-#other columns
-means
-
-linreg(data$energy, data$danceability)
-linreg(data$energy, data$loudness)
-linreg(data$energy, data$speechiness)
-linreg(data$energy, data$acousticness)
-linreg(data$energy, data$instrumentalness)
-linreg(data$energy, data$liveness)
-linreg(data$energy, data$valence)
-linreg(data$energy, data$tempo)
-
+linreg(data$danceability, data$Position)
 
 tbl <- table(data$explicit, data$mode); tbl
 expected <- outer(rowSums(tbl), colSums(tbl))/sum(tbl); expected
 chisq.test(data$explicit, data$mode)
-
 
 # Additional point 15 - calculation and display of logistic regression
 library(stats4)

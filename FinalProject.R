@@ -207,14 +207,14 @@ curve(dnorm(x, mean = mean(data$danceability), sd = sqrt(var(data$danceability))
 
 # Ggplot barplot displaying how much each mode was represented in data
 data %>% 
- ggplot(aes(x = factor(mode))) + 
-   geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
-   theme_minimal() +
-   xlab("Mode") +
-   ylab("Song Count") +
-   ggtitle("Representation of Each Mode in Billboard Hot 100") +
-   scale_x_discrete(labels = c("Minor", "Major")) +
-   coord_flip()
+  ggplot(aes(x = factor(mode))) + 
+  geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
+  theme_minimal() +
+  xlab("Mode") +
+  ylab("Song Count") +
+  ggtitle("Representation of Each Mode in Billboard Hot 100") +
+  scale_x_discrete(labels = c("Minor", "Major")) +
+  coord_flip()
 
 # Ggplot barplot displaying how much each key (with mode) was represented in data
 keymode_lab <- c("C", "Cm", "C#/Db", "C#m/Dbm", "D", "Dm", "D#/Eb", 
@@ -250,7 +250,7 @@ data %>%
   ggplot(aes(x = year, y = mean_tempo)) +
   geom_line(color = "darkmagenta", linetype = "solid", size = 1.25) + 
   ggtitle("Change in Mean Tempo of Billboard Hot 100 Songs Over Time")
-  xlab("Year") +
+xlab("Year") +
   ylab("Mean Tempo") +
   theme_bw()
 # Additional point 5 - Different graphical display (line graph)

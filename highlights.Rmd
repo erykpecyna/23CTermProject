@@ -1,0 +1,258 @@
+---
+title: "Spotify Data"
+author: "Kodi Obika and Eryk Pecyna"
+date: "May 7, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+data <- read.csv("TrackData.csv")
+perm.test <- function(x, y, z) {
+  n <- dim(data)[1]
+  match <- y == z
+  n.m <- sum(match)
+  x.m <- x[match]
+  x.nm <- x[!match]
+  mu.m <- mean(x.m)
+  mu.nm <- mean(x.nm)
+  diff.x <- mu.m - mu.nm
+  N <- 10^4
+  perms <- numeric(N)
+  for (i in 1:N) {
+    m.index = sample(1:n, size = n.m)
+    m.mean = mean(x[m.index])
+    nm.mean = mean(x[-m.index])
+    perms[i] = m.mean - nm.mean
+  }
+  
+  hist(perms,
+       col = "darkmagenta",
+       main = "Histogram of Permuted Statistics",
+       xlab = "Permuted Statistics",
+       ylab = "Relative Frequency",
+       prob = TRUE)
+  abline(v = diff.x, lwd = 3)
+  
+  p.val <- mean(perms > diff.x) * 2
+  print("p-value:")
+  p.val
+}
+linreg <- function(xCol, yCol, xLabel = "X", yLabel = "Y") {
+  m1 <- rep(1, length(xCol))
+  m2 <- xCol
+  A <- cbind(m1, m2)
+  B <- t(A)%*%A
+  BInv <- solve(B)
+  P <- A%*%BInv%*%t(A)
+  Projection <- P%*%yCol
+  plot(xCol, yCol, pch = ".", cex = 2)
+  points(xCol, Projection, col = "darkmagenta", pch = ".", cex = 3)
+  R2 <- var(Projection)/var(yCol)
+  print("Correlation:")
+  print(R2[1])
+}
+PCA <- function(RawData, nV = 1) {
+  numRow <- nrow(RawData)
+  numCol <- length(RawData[1,])
+  fillZeroes <- function(numCols) {
+    matrix(0, nrow = numRow, ncol = numCols)
+  }
+  Adjusted <- scale(RawData, center=TRUE, scale = c(rep(sqrt(numRow-1), numCol)))
+  S <- var(RawData)
+  Eig <- eigen(S)
+  P <- Eig$vectors
+  PInv <- solve(P)
+  Data.eig <- Adjusted%*%P
+  A.reconstruct <- Data.eig%*%PInv
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  AStripped <- cbind(Data.eig[,1:nV], fillZeroes(numCol-nV))
+  A.reconstruct <- AStripped%*%PInv
+  Reconstructed <- scale(A.reconstruct, scale = c(rep(1/sqrt(numRow-1), numCol)))
+  Reconstructed <- scale(Reconstructed, center = -colMeans(RawData), scale = FALSE)
+  Reconstructed
+}
+meancorrelation <- function(dt, testcol) {
+  total <- 0
+  for(i in 1:ncol(dt)) {
+    if(i != testcol) {
+      total <- total + linreg(dt[,testcol], dt[,i])
+    }
+  }
+  print("Mean Correlation:")
+  print(total / (ncol(dt) - 1))
+  total / (ncol(dt) - 1)
+}
+logreg <- function(x, y, z) {
+  tf <- (as.numeric(y == z))
+  plot(x, tf)
+  MLL <- function(alpha, beta) {
+    -sum(log(exp(alpha+beta*x)/(1+exp(alpha+beta*x)))*tf
+         + log(1/(1+exp(alpha+beta*x)))*(1-tf))
+  }
+  results <- mle(MLL, start = list(alpha = 0, beta = 0))
+  results@coef
+  curve(exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+}
+ci <- function(x, p) {
+  err <- qt(p, 9) * sd(x) / sqrt(10)
+  print("Lower bound:")
+  print(mean(x) - err)
+  print("Upper bound:")
+  print(mean(x) + err)
+}
+```
+
+## Introduction
+
+This is an analysis of the data collected and calculated by Spotify regarding the Billboard Hot 100 songs for the years 1960-2015. The data was calculated using a variety of features and can be found described in more detail here <https://www.rdocumentation.org/packages/billboard/versions/0.1.0/topics/spotify_track_data>
+
+## The Columns
+This shows a glimpse of all of the columns that make up the data.
+```{r RawData}
+head(data)
+```
+
+## Mode and Key
+This shows how each mode and each key (irrespective of mode) are represented in Billboard charting songs.
+```{r basic graphics}
+data %>% 
+  ggplot(aes(x = factor(mode))) + 
+  geom_bar(stat = "count", width = 0.5, fill = "darkmagenta") + 
+  theme_minimal() +
+  xlab("Mode") +
+  ylab("Song Count") +
+  ggtitle("Representation of Each Mode in Billboard Hot 100") +
+  scale_x_discrete(labels = c("Minor", "Major")) +
+  coord_flip()
+
+key_count <- c(sum(data$key == 0),
+               sum(data$key == 1),
+               sum(data$key == 2),
+               sum(data$key == 3),
+               sum(data$key == 4),
+               sum(data$key == 5), 
+               sum(data$key == 6), 
+               sum(data$key == 7),
+               sum(data$key == 8), 
+               sum(data$key == 9), 
+               sum(data$key == 10),
+               sum(data$key == 11))
+key_lab <- c("C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B")
+barplot(key_count,
+        xlab = "Key", 
+        ylab = "Song counts", 
+        col = "darkmagenta", 
+        names.arg = key_lab,
+        ylim = c(0, 700),
+        main = "Representation of Each Key in Billboard Hot 100")
+```
+
+## Representation of Each Key (with Modality)
+This displays the ordered counts of songs that were written in each key (with mode taken into account).
+```{r key}
+keymode_lab <- c("C", "Cm", "C#/Db", "C#m/Dbm", "D", "Dm", "D#/Eb", 
+                 "D#m/Ebm", "E", "Em", "F", "Fm", "F#/Gb", "F#m/Gbm", 
+                 "G", "Gm", "G#/Ab", "G#m/Abm", "A", "Am", "A#/Bb", 
+                 "A#m/Bbm", "B", "Bm")
+data %>% 
+  select(key, mode) %>% 
+  group_by(key, mode) %>% 
+  mutate(n = n()) %>% 
+  unique() %>% 
+  arrange(desc(mode)) %>%
+  arrange(key) %>% 
+  ungroup() %>% 
+  mutate(keymode = keymode_lab) %>% 
+  arrange(n) %>% 
+  select(keymode, n) %>% 
+  ggplot(aes(x = reorder(keymode, n), y = n)) + 
+  geom_bar(stat = "identity", fill = "darkmagenta") +
+  ggtitle("Representation of Each Key (with Modality) in Billboard Hot 100") +
+  xlab("Key (with Modality)") +
+  ylab("Song Count") + 
+  coord_flip() + 
+  theme_bw()
+```
+
+## Tempo Over Time
+This displays how average tempo on Billboard charting songs has changed over time.
+```{r tempo}
+data %>%
+  select(year, tempo) %>% 
+  group_by(year) %>% 
+  mutate(mean_tempo = mean(tempo)) %>% 
+  select(year, mean_tempo) %>% 
+  unique() %>% 
+  ggplot(aes(x = year, y = mean_tempo)) +
+  geom_line(color = "darkmagenta", linetype = "solid", size = 1.25) + 
+  ggtitle("Change in Mean Tempo of Billboard Hot 100 Songs Over Time") +
+  xlab("Year") +
+  ylab("Mean Tempo") +
+  theme_bw()
+```
+
+## Probability Density of Danceability
+This displays the probability density of danceability and shows that it can roughly be
+modeled by a normal distribution
+```{r danceability}
+hist(data$danceability,
+     breaks="FD", 
+     freq=FALSE,
+     col="darkmagenta",
+     xlab = "Danceability",
+     main = "Danceability Probabilty Density")
+curve(dnorm(x, mean = mean(data$danceability), sd = sqrt(var(data$danceability))), add = TRUE, lwd = 3, lty = 4)
+```
+
+## Analysis via Classical and Simulation Methods
+This first displays a contingency table relating explicitness and mode, and then
+does a chi square analysis on the table as well as permutation tests relating valence
+to explictness and mode. The p-values of 0, 0.06, and 0 respectively imply
+statistically significant evidence of dependence between explicitness and mode,
+do not imply statistically significant evidence of a valence difference between
+explicit and non-explicit songs, and statistically significant evidence of a
+valence difference between songs written in the major and minor mode.
+```{r analysis}
+tbl <- table(data$explicit, data$mode); tbl
+chisq.test(tbl)
+perm.test(data$valence, data$explicit, FALSE)
+perm.test(data$valence, data$mode, 0)
+```
+
+## Linear Regression 
+Here we use a Projection Matrix approach to calculate linear regression
+```{r linreg, fig.show="hide", results="hide"}
+Attributes <- cbind(data$danceability, data$energy, data$loudness,
+                    data$speechiness, data$acousticness, data$instrumentalness,
+                    data$liveness, data$valence, data$tempo)
+numericalData <- (cbind(data$Position, Attributes))  
+N <- ncol(numericalData)
+means <- numeric(N)
+for(i in 1:N) {
+  means[i] <- meancorrelation(numericalData, i)
+}
+```
+The third column, which happens to be energy in our definition of numericalData, has the highest average correlation with the other columns. The following linear regressions are the highest correlations energy has with any other columns.
+```{r means} 
+means
+linreg(data$energy, data$loudness)
+linreg(data$energy, data$acousticness)
+linreg(data$energy, data$valence)
+```
+
+## Principal Components Analysis
+Here we will use Principal Componenets Analysis to see if we can reconstruct any of the columns after stripping some of the eigenvectors of the basis of eigenvectors formed from the covariance matrix.
+
+Using one eigenvector gives us a good reconstruction of tempo (column 9)
+Using two also gives a good reconstruction of loudness (column 2) but not much else
+Using eight gives a decent reconstruction of all columns except speechiness (column 4)
+Using nine yields a perfect reconstruction of all the data
+```{r PCA}
+head(PCA(Attributes)); head(Attributes)
+head(PCA(Attributes, 2)); head(Attributes)
+head(PCA(Attributes, 8)); head(Attributes)
+head(PCA(Attributes, 9)); head(Attributes)
+```

@@ -49,7 +49,6 @@ perm.test <- function(x, y, z) {
     nm.mean = mean(x[-m.index])
     perms[i] = m.mean - nm.mean
   }
-  
   hist(perms,
        col = "darkmagenta",
        main = "Histogram of Permuted Statistics",
@@ -120,7 +119,7 @@ PCA <- function(RawData, nV = 1) {
   Reconstructed
 }
 
-# Let's see which columns are most corellated with the others
+# Sees how columns correlate with one another
 meancorrelation <- function(dt, testcol) {
   total <- 0
   for(i in 1:ncol(dt)) {
@@ -133,6 +132,7 @@ meancorrelation <- function(dt, testcol) {
   total / (ncol(dt) - 1)
 }
 
+# Carries out logistic regression
 logreg <- function(x, y, z) {
   tf <- (as.numeric(y == z))
   plot(x, tf)
@@ -145,6 +145,7 @@ logreg <- function(x, y, z) {
   curve(exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
 }
 
+# Calculates confidence interval
 ci <- function(x, p) {
   err <- qt(p, 9) * sd(x) / sqrt(10)
   print("Lower bound:")
